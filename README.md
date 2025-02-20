@@ -4,5 +4,3 @@ ll copy all the configuration files and the transitive dependencies (webpack, Ba
 
 
 ## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
