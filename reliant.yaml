@@ -1,76 +1,51 @@
-apiVersion: reliantlabs.io/v1alpha2
-kind: Reliant
-metadata:
-  name: my-portfolio
-spec:
-  app_defaults:
-    namespace: reliant-system
-    build:
-      docker:
-        registry: snadimi
-        creds:
-          username: snadimi
-          secret_ref: DOCKER_CREDS
-    outputs:
-      k8s:
-        deployment:
-          spec:
-            template:
-              spec:
-                imagePullSecrets:
-                - name: regcred
+app_defaults:
+  namespace: reliant-system
+  build:
+    docker:
+      registry: snadimiri
+      creds:
+        username: snadimiri
+        secret_ref: DOCKER_CREDS
+  outputs:
+    k8s:
+      deployment:
+        spec:
+          template:
+            spec:
+              imagePullSecrets:
+              - name: regcred
+slices:
+  - configs/slices/**/*.yaml
+tests:
+  go-lint:
+    image: golangci/golangci-lint
+    args:
+      - golangci-lint
+      - run
+      - ./...
+      - --timeout=5m
+apps:
+  - configs/*.yaml
+pipelines:
+  integration:
+    slices: [ephemeral, staging]
+    triggers:
+      events:
+        pull_requests:
+          branches:
+            - main
+  int-deploy:
+    slices: [ephemeral, staging]
+    triggers:
+      events:
+        push:
+          branches:
+            - main
+  deploy:
+    slices: [ephemeral, staging, prod-us-central1, prod-us-east1]
+    triggers:
+      manual:
+        approvers:
+          - "@all"
 
-  slices:
-    - configs/slices/**/*.yaml
-
-  tests:
-    go-lint:
-      image: golangci/golangci-lint
-      args:
-        - golangci-lint
-        - run
-        - ./...
-        - --timeout=5m
-
-  apps:
-    - configs/*.yaml
-
-  pipelines:
-    integration:
-      slices: [ephemeral, staging]
-      triggers:
-        events:
-          pull_requests:
-            branches:
-              - main
-    int-deploy:
-      slices: [ephemeral, staging]
-      triggers:
-        events:
-          push:
-            branches:
-              - main
-    deploy:
-      slices: [ephemeral, staging, prod-us-central1, prod-us-east1]
-      triggers:
-        manual:
-          approvers:
-            - "@all"
-
-  output:
-    apps:
-      my-portfolio:
-        sources:
-          files:
-            - dist/**/*
-        dependsOn: []
-    pipelines:
-      integration:
-        workflow:
-          # Argo Workflow configuration will be generated here
-      int-deploy:
-        workflow:
-          # Argo Workflow configuration will be generated here
-      deploy:
-        workflow:
-          # Argo Workflow configuration will be generated here
+# Outputs include, all k8s stuff (per app per slice), pipelines (global, but contains slice and app info.)
