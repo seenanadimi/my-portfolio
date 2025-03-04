@@ -3,39 +3,60 @@ kind: Reliant
 metadata:
   name: my-portfolio
 spec:
-  # Define any tests that should be run
-  tests:
-    build:
-      image: node:latest
-      command: ["npm", "run", "build"]
-  
-  # Define application defaults
   app_defaults:
+    namespace: reliant-system
     build:
-      steps:
-        - name: build
-          image: node:latest
-          command: ["npm", "run", "build"]
-    image:
-      - registry: "{{ reliant.vars.REGISTRY }}"
-        dockerfile: Dockerfile
-        buildContext: .
-        image: my-portfolio
+      docker:
+        registry: snadimi
         creds:
-          username: "{{ reliant.vars.DOCKER_USERNAME }}"
-          secretRef: docker-registry-creds
+          username: snadimi
+          secret_ref: DOCKER_CREDS
+    outputs:
+      k8s:
+        deployment:
+          spec:
+            template:
+              spec:
+                imagePullSecrets:
+                - name: regcred
 
-  # List of applications to deploy
+  slices:
+    - configs/slices/**/*.yaml
+
+  tests:
+    go-lint:
+      image: golangci/golangci-lint
+      args:
+        - golangci-lint
+        - run
+        - ./...
+        - --timeout=5m
+
   apps:
-    - my-portfolio
+    - configs/*.yaml
 
-  # Define any slices (if needed)
-  slices: []
+  pipelines:
+    integration:
+      slices: [ephemeral, staging]
+      triggers:
+        events:
+          pull_requests:
+            branches:
+              - main
+    int-deploy:
+      slices: [ephemeral, staging]
+      triggers:
+        events:
+          push:
+            branches:
+              - main
+    deploy:
+      slices: [ephemeral, staging, prod-us-central1, prod-us-east1]
+      triggers:
+        manual:
+          approvers:
+            - "@all"
 
-  # Define any pipelines (if needed)
-  pipelines: []
-
-  # Output configuration
   output:
     apps:
       my-portfolio:
@@ -43,3 +64,13 @@ spec:
           files:
             - dist/**/*
         dependsOn: []
+    pipelines:
+      integration:
+        workflow:
+          # Argo Workflow configuration will be generated here
+      int-deploy:
+        workflow:
+          # Argo Workflow configuration will be generated here
+      deploy:
+        workflow:
+          # Argo Workflow configuration will be generated here
