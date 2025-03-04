@@ -1,0 +1,45 @@
+apiVersion: reliantlabs.io/v1alpha2
+kind: Reliant
+metadata:
+  name: my-portfolio
+spec:
+  # Define any tests that should be run
+  tests:
+    build:
+      image: node:latest
+      command: ["npm", "run", "build"]
+  
+  # Define application defaults
+  app_defaults:
+    build:
+      steps:
+        - name: build
+          image: node:latest
+          command: ["npm", "run", "build"]
+    image:
+      - registry: "{{ reliant.vars.REGISTRY }}"
+        dockerfile: Dockerfile
+        buildContext: .
+        image: my-portfolio
+        creds:
+          username: "{{ reliant.vars.DOCKER_USERNAME }}"
+          secretRef: docker-registry-creds
+
+  # List of applications to deploy
+  apps:
+    - my-portfolio
+
+  # Define any slices (if needed)
+  slices: []
+
+  # Define any pipelines (if needed)
+  pipelines: []
+
+  # Output configuration
+  output:
+    apps:
+      my-portfolio:
+        sources:
+          files:
+            - dist/**/*
+        dependsOn: []
